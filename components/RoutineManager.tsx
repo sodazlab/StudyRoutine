@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User, Task } from '../types';
-import { getUsers, addUser, getTasks, addTask, deleteTask, copyRoutine, setParentPin, getParentPin } from '../services/firebase';
+import { getUsers, addUser, getTasks, addTask, deleteTask, copyRoutine, setParentPin } from '../services/firebase';
 import { AVATARS, DAYS_OF_WEEK } from '../constants';
 import { Modal } from './ui/Modal';
 

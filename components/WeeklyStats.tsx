@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
-import { User, Record, Task } from '../types';
+import { User } from '../types';
 import { getWeeklyRecords, getUsers, getTasks } from '../services/firebase';
 
 export const WeeklyStats: React.FC = () => {
@@ -144,11 +144,11 @@ export const WeeklyStats: React.FC = () => {
                 cursor={{fill: '#f3f4f6'}}
                 contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontFamily: 'Noto Sans KR' }}
                 itemStyle={{ color: '#1f2937', fontWeight: 'bold' }}
-                formatter={(value: any, name: any, props: any) => [`${value}% (${props.payload.done} / ${props.payload.total}개)`, '달성률']}
+                formatter={(value: any, _name: any, props: any) => [`${value}% (${props.payload.done} / ${props.payload.total}개)`, '달성률']}
                 labelStyle={{ color: '#6b7280', marginBottom: '4px' }}
               />
               <Bar dataKey="percentage" radius={[6, 6, 6, 6]}>
-                {data.map((entry, index) => (
+                {data.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={index >= 5 ? '#f472b6' : '#818cf8'} /> // Weekend pink, Weekday indigo
                 ))}
                 <LabelList 
