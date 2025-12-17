@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User, Task, Record } from '../types';
-import { getTasks, getTodayRecords, addRecord, deleteRecord } from '../services/firebase';
+import { getTasks, getTodayRecords, addRecord, deleteRecord } from '../services/supabase';
 import { DAYS_OF_WEEK, PASS_REASONS } from '../constants';
 import { Modal } from './ui/Modal';
 import confetti from 'canvas-confetti';

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Layout } from './components/ui/Layout';
 import { ChildDashboard } from './components/ChildDashboard';
 import { ParentDashboard } from './components/ParentDashboard';
-import { getUsers, getParentPin, saveFirebaseConfig, resetFirebaseConfig, isFirebaseConfigured } from './services/firebase';
+import { getUsers, getParentPin, saveSupabaseConfig, resetSupabaseConfig, isSupabaseConfigured } from './services/supabase';
 import { User } from './types';
 import { Modal } from './components/ui/Modal';
 
@@ -23,14 +23,15 @@ function App() {
   const [inputPin, setInputPin] = useState("");
 
   // Config State
-  const [configJson, setConfigJson] = useState("");
+  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const [supabaseKey, setSupabaseKey] = useState("");
 
   useEffect(() => {
     let timer: any;
 
     const init = async () => {
       // 1. If not configured at all, go straight to config
-      if (!isFirebaseConfigured()) {
+      if (!isSupabaseConfigured()) {
         setView('config');
         return;
       }
@@ -52,9 +53,17 @@ function App() {
         }
       } catch (e: any) {
         clearTimeout(timer);
-        console.error(e);
-        // If it's a specific config error or network error
-        setError("서버 연결에 실패했습니다. 설정을 확인해주세요.");
+        console.error("App Init Error:", e);
+        
+        let msg = "서버 연결에 실패했습니다. 설정을 확인해주세요.";
+        
+        if (e.message === "TABLE_NOT_FOUND") {
+           msg = "⚠️ 데이터베이스 테이블이 없습니다.\nSupabase SQL Editor에서 테이블 생성 쿼리를 실행해주세요.";
+        } else if (e.message) {
+           msg = `오류: ${e.message}`;
+        }
+        
+        setError(msg);
         setView('config');
       }
     };
@@ -68,9 +77,9 @@ function App() {
 
   const handleConfigSubmit = () => {
     try {
-      saveFirebaseConfig(configJson);
+      saveSupabaseConfig(supabaseUrl, supabaseKey);
     } catch (e) {
-      alert("올바르지 않은 JSON 형식입니다. 다시 확인해주세요.");
+      alert("올바르지 않은 정보입니다. URL과 Key를 확인해주세요.");
     }
   };
 
@@ -118,7 +127,7 @@ function App() {
           <div className="relative">
              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-100 border-t-indigo-500"></div>
              <div className="absolute inset-0 flex items-center justify-center text-xl">
-               🚀
+               ⚡
              </div>
           </div>
           
@@ -127,7 +136,7 @@ function App() {
               {isLongLoading ? "연결이 지연되고 있어요 😓" : "서버에 연결하고 있어요..."}
             </h2>
             <p className="text-gray-500 font-medium text-sm">
-              {isLongLoading ? "네트워크 상태를 확인하거나 설정을 다시 해보세요." : "잠시만 기다려주세요!"}
+              {isLongLoading ? "네트워크 상태를 확인하거나 설정을 다시 해보세요." : "Supabase와 통신 중입니다!"}
             </p>
           </div>
 
@@ -150,44 +159,55 @@ function App() {
       <Layout>
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-100 w-full animate-[scale-in_0.3s_ease-out]">
           <div className="text-center mb-6">
-            <span className="text-4xl mb-2 block">🔌</span>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">서버 연결 설정</h1>
+            <span className="text-4xl mb-2 block">⚡</span>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Supabase 연결</h1>
             <p className="text-gray-500 text-sm">
-              앱을 사용하려면 Firebase 설정이 필요합니다.<br/>
-              Firebase Console에서 설정을 복사해 붙여넣어주세요.
+              Supabase 프로젝트 대시보드에서<br/>
+              URL과 Anon Key를 복사해오세요.
             </p>
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold mb-4 text-center">
+            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold mb-4 text-center whitespace-pre-line border border-red-100">
               {error}
             </div>
           )}
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Config JSON</label>
-              <textarea 
-                className="w-full h-40 p-4 border border-gray-300 rounded-xl text-xs font-mono bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
-                placeholder='{ "apiKey": "...", "authDomain": "...", ... }'
-                value={configJson}
-                onChange={(e) => setConfigJson(e.target.value)}
+              <label className="block text-sm font-bold text-gray-700 mb-2">Project URL</label>
+              <input 
+                type="text"
+                className="w-full p-3 border border-gray-300 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                placeholder='https://your-project.supabase.co'
+                value={supabaseUrl}
+                onChange={(e) => setSupabaseUrl(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Anon / Public Key</label>
+              <input 
+                type="password"
+                className="w-full p-3 border border-gray-300 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                placeholder='eyJh...'
+                value={supabaseKey}
+                onChange={(e) => setSupabaseKey(e.target.value)}
               />
             </div>
             
             <button 
               onClick={handleConfigSubmit}
-              disabled={!configJson.trim()}
-              className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold py-3.5 rounded-xl hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+              disabled={!supabaseUrl.trim() || !supabaseKey.trim()}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3.5 rounded-xl hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
             >
-              서버 연결하기
+              연결하기
             </button>
 
-            {/* Helper for user experience if they are stuck */}
             <div className="flex justify-center mt-2">
                <button 
                  onClick={() => window.location.reload()}
-                 className="text-xs text-gray-400 hover:text-indigo-500 underline"
+                 className="text-xs text-gray-400 hover:text-green-600 underline"
                >
                  새로고침
                </button>
@@ -195,7 +215,7 @@ function App() {
 
             <div className="bg-gray-50 p-4 rounded-xl text-xs text-gray-500 leading-relaxed border border-gray-100">
               <strong>💡 설정 찾는 법:</strong><br/>
-              Firebase Console &gt; Project Overview &gt; 프로젝트 설정 &gt; 일반 &gt; 내 앱 &gt; SDK 설정 및 구성 &gt; <code>const firebaseConfig = {'{...}'}</code> 부분의 괄호 안 내용을 복사하세요.
+              Supabase Dashboard &gt; Project Settings &gt; API 섹션에서 URL과 <code>anon public</code> 키를 찾을 수 있습니다.
             </div>
           </div>
         </div>
@@ -248,7 +268,7 @@ function App() {
           <button 
             onClick={() => {
               if(confirm("정말 서버 연결을 끊고 설정을 초기화하시겠습니까?")) {
-                resetFirebaseConfig();
+                resetSupabaseConfig();
               }
             }}
             className="text-xs text-gray-400 hover:text-red-500 underline"

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { User } from '../types';
-import { getWeeklyRecords, getUsers, getTasks } from '../services/firebase';
+import { getWeeklyRecords, getUsers, getTasks } from '../services/supabase';
 
 export const WeeklyStats: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
