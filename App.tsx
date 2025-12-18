@@ -20,6 +20,21 @@ function App() {
   const [supabaseKey, setSupabaseKey] = useState("");
 
   const startConnectionCheck = useCallback(async () => {
+    // 1. Check for URL parameters first (Magic Link)
+    const params = new URLSearchParams(window.location.search);
+    const u = params.get('u');
+    const k = params.get('k');
+    
+    if (u && k) {
+      try {
+        saveSupabaseConfig(u, k);
+        // Clear query params for security and clean URL
+        window.history.replaceState({}, document.title, window.location.origin);
+      } catch (e) {
+        console.error("Magic link config failed", e);
+      }
+    }
+
     if (!isSupabaseConfigured()) {
       setView('config');
       return;
