@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
-import { User, Task, Record } from '../types';
+import { User } from '../types';
 import { getWeeklyRecords, getUsers, getTasks } from '../services/supabase';
 import { DAYS_OF_WEEK } from '../constants';
 
