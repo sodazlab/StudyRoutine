@@ -28,11 +28,20 @@ const getClient = (): SupabaseClient => {
 
 // Helper to handle Supabase errors consistently
 const handleSupabaseError = (error: any) => {
-  console.error("Supabase Operation Failed:", error);
-  if (error?.code === '42P01') {
+  // Convert object error to readable string if needed
+  const message = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+  console.error("Supabase Operation Failed:", message, error);
+
+  // Check for "Table not found" patterns
+  if (
+    error?.code === '42P01' || 
+    message.includes('Could not find the table') || 
+    message.includes('schema cache')
+  ) {
     throw new Error("TABLE_NOT_FOUND");
   }
-  throw new Error(error?.message || "Unknown Supabase Error");
+  
+  throw new Error(message || "Unknown Supabase Error");
 };
 
 // Configuration Methods
@@ -40,9 +49,18 @@ export const saveSupabaseConfig = (url: string, key: string) => {
   if (!url.startsWith('http') || !key) {
     throw new Error("Invalid Supabase Configuration");
   }
+  
+  // Save to storage
   localStorage.setItem(STORAGE_KEY_URL, url);
   localStorage.setItem(STORAGE_KEY_KEY, key);
-  window.location.reload();
+  
+  // Initialize immediately without reload
+  try {
+    supabase = createClient(url, key);
+  } catch (e) {
+    console.error("Failed to init supabase client:", e);
+    throw new Error("Failed to initialize Supabase client");
+  }
 };
 
 export const resetSupabaseConfig = () => {
@@ -60,8 +78,8 @@ export const getUsers = async (): Promise<User[]> => {
     if (error) handleSupabaseError(error);
     return data || [];
   } catch (e: any) {
-    console.error("Error getting users:", e);
     if (e.message === "SUPABASE_NOT_CONFIGURED") throw e;
+    // Rethrow to be handled by App.tsx
     throw e;
   }
 };
@@ -89,7 +107,6 @@ export const getTasks = async (childId: string, dayOfWeek?: number): Promise<Tas
     const { data, error } = await query;
     if (error) handleSupabaseError(error);
 
-    // Map snake_case DB to camelCase Types
     return (data || []).map((t: any) => ({
       id: t.id,
       childId: t.child_id,
@@ -127,7 +144,6 @@ export const deleteTask = async (taskId: string) => {
 export const copyRoutine = async (childId: string, fromDay: number, toDay: number) => {
   const client = getClient();
 
-  // 1. Get source tasks
   const { data: sourceTasks, error: fetchError } = await client
     .from('tasks')
     .select('*')
@@ -137,7 +153,6 @@ export const copyRoutine = async (childId: string, fromDay: number, toDay: numbe
   if (fetchError) handleSupabaseError(fetchError);
   if (!sourceTasks || sourceTasks.length === 0) return;
 
-  // 2. Delete existing tasks on target day
   const { error: deleteError } = await client
     .from('tasks')
     .delete()
@@ -146,7 +161,6 @@ export const copyRoutine = async (childId: string, fromDay: number, toDay: numbe
 
   if (deleteError) handleSupabaseError(deleteError);
 
-  // 3. Create new tasks
   const newTasks = sourceTasks.map(t => ({
     child_id: childId,
     title: t.title,
@@ -248,14 +262,12 @@ export const getParentPin = async (): Promise<string> => {
       .single();
 
     if (error) {
-      // If table doesn't exist, throw to warn user
-      if (error.code === '42P01') handleSupabaseError(error);
+      if (error.code === 'PGRST116') return "0000"; // No rows
+      handleSupabaseError(error);
       return "0000"; 
     }
     return data?.parent_pin || "0000";
   } catch (e) {
-    console.error("Error getting pin:", e);
-    // If table missing, propagate
     if ((e as Error).message === "TABLE_NOT_FOUND") throw e;
     return "0000";
   }
